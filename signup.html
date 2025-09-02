@@ -134,9 +134,8 @@
         message.style.color = "green";
         message.textContent = "Account created successfully! Redirecting...";
         setTimeout(() => {
-          window.location.href = "index.html"; // redirect to homepage
+          window.location.href = "index.html"; // homepage
         }, 1500);
-
       } catch (error) {
         console.error("Signup error:", error);
         message.style.color = "red";
