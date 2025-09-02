@@ -150,7 +150,7 @@
     // Check login state and update navbar
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-        const userRef = db.collection('user').doc(user.id);
+        const userRef = db.collection('users').doc(user.id);
         // Get user name from Firestore
         const doc = await db.collection('users').doc(user.uid).get();
         let name = user.email; // fallback
