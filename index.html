@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Training Log</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      display: block;
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: white;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Team Training Log</h1>
+
+  <!-- Workout Form -->
+  <form id="logForm">
+    <input type="text" id="name" placeholder="Your Name" required>
+    <input type="date" id="date" required>
+    <input type="text" id="workout" placeholder="Workout (e.g. 5 miles easy)" required>
+    <textarea id="notes" placeholder="Notes (optional)"></textarea>
+    <button type="submit">Add Workout</button>
+  </form>
+
+  <!-- Workout List -->
+  <h2>Workouts</h2>
+  <ul id="logs"></ul>
+
+  <script>
+    // Temporary storage (in-memory only)
+    const form = document.getElementById('logForm');
+    const logsList = document.getElementById('logs');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      // Get form values
+      const name = document.getElementById('name').value;
+      const date = document.getElementById('date').value;
+      const workout = document.getElementById('workout').value;
+      const notes = document.getElementById('notes').value;
+
+      // Create a new list item
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${date}</strong> - ${name}: ${workout} <br><em>${notes}</em>`;
+      logsList.prepend(li);
+
+      // Clear the form
+      form.reset();
+    });
+  </script>
+</body>
+</html>
