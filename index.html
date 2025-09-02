@@ -150,6 +150,7 @@
     // Check login state and update navbar
     auth.onAuthStateChanged(async (user) => {
       if (user) {
+        const userRef = db.collection('user').doc(user.id);
         // Get user name from Firestore
         const doc = await db.collection('users').doc(user.uid).get();
         let name = user.email; // fallback
@@ -185,9 +186,9 @@
       const date = document.getElementById('date').value;
       const workout = document.getElementById('workout').value;
       const notes = document.getElementById('notes').value;
-
+      
       try {
-        await db.collection('workouts').add({
+        await userRef.collection('workouts').add({
           name,
           date,
           workout,
@@ -201,7 +202,7 @@
     });
 
     // Real-time listener to display workouts
-    db.collection('workouts')
+    userRef.collection('workouts')
       .orderBy('timestamp', 'desc')
       .onSnapshot((snapshot) => {
         logsList.innerHTML = '';
