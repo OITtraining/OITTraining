@@ -1,5 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+  <!-- Firebase App (required) -->
+<script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js"></script>
+
+<!-- Firestore -->
+<script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"></script>
+
+<!-- (Optional) Firebase Auth if you want accounts later -->
+<script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js"></script>
+<script>
+  import { initializeApp } from "firebase/app";
+  import { getAnalytics } from "firebase/analytics";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
+    authDomain: "ottraining-69ef4.firebaseapp.com",
+    projectId: "ottraining-69ef4",
+    storageBucket: "ottraining-69ef4.firebasestorage.app",
+    messagingSenderId: "716640190687",
+    appId: "1:716640190687:web:23e500028b40f8c81d696a",
+    measurementId: "G-5JNEQRRXGR"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,26 +88,27 @@
   <ul id="logs"></ul>
 
   <script>
-    // Temporary storage (in-memory only)
     const form = document.getElementById('logForm');
     const logsList = document.getElementById('logs');
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+    form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-      // Get form values
-      const name = document.getElementById('name').value;
-      const date = document.getElementById('date').value;
-      const workout = document.getElementById('workout').value;
-      const notes = document.getElementById('notes').value;
+    const name = document.getElementById('name').value;
+    const date = document.getElementById('date').value;
+    const workout = document.getElementById('workout').value;
+    const notes = document.getElementById('notes').value;
 
-      // Create a new list item
-      const li = document.createElement('li');
-      li.innerHTML = `<strong>${date}</strong> - ${name}: ${workout} <br><em>${notes}</em>`;
-      logsList.prepend(li);
+    // Save to Firestore
+    await db.collection('workouts').add({
+      name,
+      date,
+      workout,
+      notes,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
-      // Clear the form
-      form.reset();
+    form.reset();
     });
   </script>
 </body>
