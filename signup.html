@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Training Log - Sign Up</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #17396a;
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h1 {
+      color: #17396a;
+      margin-bottom: 1.5rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      background: #f8bc2c;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #d9a323;
+    }
+    .link {
+      display: block;
+      margin-top: 1rem;
+      color: #17396a;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+    <form id="signupForm">
+      <input type="text" id="name" placeholder="Full Name" required>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <select id="role" required>
+        <option value="" disabled selected>Select Role</option>
+        <option value="Coach">Coach</option>
+        <option value="Athlete">Athlete</option>
+      </select>
+      <button type="submit"><a href="#">Sign Up</a></button>
+    </form>
+    <a class="link" href="login.html">Already have an account? Log in</a>
+  </div>
+</body>
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
+      authDomain: "ottraining-69ef4.firebaseapp.com",
+      projectId: "ottraining-69ef4",
+      storageBucket: "ottraining-69ef4.appspot.com",
+      messagingSenderId: "716640190687",
+      appId: "1:716640190687:web:23e500028b40f8c81d696a",
+      measurementId: "G-5JNEQRRXGR"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const form = document.getElementById('signupForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+
+      try {
+        // Create user in Firebase Auth
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // Store user profile in Firestore under "users/{uid}"
+        await db.collection('users').doc(user.uid).set({
+          name: name,
+          email: email,
+          role: role,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        message.style.color = "green";
+        message.textContent = "Account created successfully!";
+        setTimeout(() => {
+            window.location.href = "index.html";
+        }, 1500);
+      } catch (error) {
+        console.error(error);
+        message.style.color = "red";
+        message.textContent = error.message;
+      }
+    });
+</script>
+</html>

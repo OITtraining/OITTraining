@@ -5,41 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Team Training Log</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: #f9f9f9;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    form {
-      margin-bottom: 2rem;
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    input, textarea, button {
-      display: block;
-      width: 100%;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      box-sizing: border-box;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      background: white;
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-      border-radius: 6px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
+    *{
+			text-decoration: none;
+		}
+		.navbar{
+			background: #f8bc2c; font-family: calibri; padding-right: 15px;padding-left: 15px;
+		}
+		.navdiv{
+			display: flex; align-items: center; justify-content: space-between;
+		}
+		.logo a{
+			font-size: 35px; font-weight: 600; color: white;
+		}
+		li{
+			list-style: none; display: inline-block;
+		}
+		li a{
+			color: white; font-size: 18px; font-weight: bold; margin-right: 25px;
+		}
+		button{
+			background-color: black; margin-left: 10px; border-radius: 10px; padding: 10px; width: 90px;
+		}
+		button a{
+			color: white; font-weight: bold; font-size: 15px;
+		}
   </style>
   <!-- Firebase SDKs -->
   <!-- Firebase App (required) -->
@@ -53,21 +42,19 @@
 
 </head>
 <body>
-  <h1>Team Training Log</h1>
-
-  <!-- Workout Form -->
-  <form id="logForm">
-    <input type="text" id="name" placeholder="Your Name" required>
-    <input type="date" id="date" required>
-    <input type="text" id="workout" placeholder="Workout (e.g., 5 miles easy)" required>
-    <textarea id="notes" placeholder="Notes (optional)"></textarea>
-    <button type="submit">Add Workout</button>
-  </form>
-
-  <!-- Workout List -->
-  <h2>Workouts</h2>
-  <ul id="logs"></ul>
-
+  <nav class="navbar">
+		<div class="navdiv">
+			<div class="logo"><a href="#">Tech Training</a> </div>
+			<ul>
+				<li><a href="#">Home</a></li>
+				<li><a href="#">About</a></li>
+				<li><a href="#">Contact</a></li>
+				<button><a href="#">Login</a></button>
+				<button><a href="signup.html">SignUp</a></button>
+			</ul>
+		</div>
+	</nav>
+  
   <script>
     // Firebase configuration
     const firebaseConfig = {
@@ -82,7 +69,19 @@
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
+
+     // Check login state
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("Logged in as:", user.email);
+      // You can also pull user data from Firestore here if needed
+      } else {
+        // Not logged in, redirect to login page
+        window.location.href = "login.html";
+      }
+    });
 
     const form = document.getElementById('logForm');
     const logsList = document.getElementById('logs');
