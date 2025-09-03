@@ -186,6 +186,7 @@
 
         // Get user name from Firestore
         const doc = await userRef.get();
+        const userData = doc.data();
         let name = user.email; // fallback
         if (doc.exists) {
           name = doc.data().name;
@@ -199,6 +200,11 @@
         document.getElementById('logoutBtn').addEventListener('click', () => {
           auth.signOut();
         });
+
+        if (userData.role !== "Athlete") {
+          window.location.href = "coach_homepage.html";
+          return;
+        }
 
         // Submit workout to Firestore under this user
         form.addEventListener('submit', async (e) => {
