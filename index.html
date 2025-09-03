@@ -128,7 +128,6 @@
     <h2>Workouts</h2>
     <ul id="logs"></ul>
   </div>
-
   <script>
     // Firebase configuration
     const firebaseConfig = {
@@ -146,13 +145,16 @@
     const db = firebase.firestore();
 
     const userContainer = document.getElementById('userContainer');
+    const form = document.getElementById('logForm');
+    const logsList = document.getElementById('logs');
 
     // Check login state and update navbar
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-        const userRef = db.collection('users').doc(user.id);
+        const userRef = db.collection('users').doc(user.uid);
+
         // Get user name from Firestore
-        const doc = await db.collection('users').doc(user.uid).get();
+        const doc = await userRef.get();
         let name = user.email; // fallback
         if (doc.exists) {
           name = doc.data().name;
@@ -160,12 +162,47 @@
 
         // Display clickable user name + logout button
         userContainer.innerHTML = `
-          ${name}
+          <a href="account.html">${name}</a>
           <button id="logoutBtn">Logout</button>
         `;
         document.getElementById('logoutBtn').addEventListener('click', () => {
           auth.signOut();
         });
+
+        // Submit workout to Firestore under this user
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const workoutName = document.getElementById('name').value;
+          const date = document.getElementById('date').value;
+          const workout = document.getElementById('workout').value;
+          const notes = document.getElementById('notes').value;
+
+          try {
+            await userRef.collection('workouts').add({
+              name: workoutName,
+              date,
+              workout,
+              notes,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            form.reset();
+          } catch (error) {
+            console.error("Error adding workout: ", error);
+          }
+        });
+
+        // Real-time listener to display workouts for this user
+        userRef.collection('workouts')
+          .orderBy('timestamp', 'desc')
+          .onSnapshot((snapshot) => {
+            logsList.innerHTML = '';
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              const li = document.createElement('li');
+              li.innerHTML = `<strong>${data.date}</strong> - ${data.name}: ${data.workout} <br><em>${data.notes || ''}</em>`;
+              logsList.appendChild(li);
+            });
+          });
 
       } else {
         // Not logged in: show Login / Sign Up buttons
@@ -175,44 +212,6 @@
         `;
       }
     });
-
-    const form = document.getElementById('logForm');
-    const logsList = document.getElementById('logs');
-
-    // Submit workout to Firestore
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      const date = document.getElementById('date').value;
-      const workout = document.getElementById('workout').value;
-      const notes = document.getElementById('notes').value;
-      
-      try {
-        await userRef.collection('workouts').add({
-          name,
-          date,
-          workout,
-          notes,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        form.reset();
-      } catch (error) {
-        console.error("Error adding workout: ", error);
-      }
-    });
-
-    // Real-time listener to display workouts
-    userRef.collection('workouts')
-      .orderBy('timestamp', 'desc')
-      .onSnapshot((snapshot) => {
-        logsList.innerHTML = '';
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          const li = document.createElement('li');
-          li.innerHTML = `<strong>${data.date}</strong> - ${data.name}: ${data.workout} <br><em>${data.notes || ''}</em>`;
-          logsList.appendChild(li);
-        });
-      });
   </script>
 </body>
 </html>
