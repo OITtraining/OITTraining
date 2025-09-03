@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Athlete Workouts</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; }
+    .container {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { text-align: center; }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: white;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1 id="athleteName">Athlete Workouts</h1>
+    <ul id="workoutList"></ul>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
+      authDomain: "ottraining-69ef4.firebaseapp.com",
+      projectId: "ottraining-69ef4",
+      storageBucket: "ottraining-69ef4.appspot.com",
+      messagingSenderId: "716640190687",
+      appId: "1:716640190687:web:23e500028b40f8c81d696a"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const workoutList = document.getElementById('workoutList');
+    const athleteNameEl = document.getElementById('athleteName');
+
+    // Get athlete uid from URL
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get('uid');
+
+    if (uid) {
+      const userRef = db.collection('users').doc(uid);
+
+      // Get athlete name
+      userRef.get().then(doc => {
+        if (doc.exists) {
+          athleteNameEl.textContent = `${doc.data().name}'s Workouts`;
+        }
+      });
+
+      // Listen for their workouts
+      userRef.collection('workouts')
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(snapshot => {
+          workoutList.innerHTML = '';
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${data.date}</strong> - ${data.name}: ${data.workout} <br><em>${data.notes || ''}</em>`;
+            workoutList.appendChild(li);
+          });
+        });
+    }
+  </script>
+</body>
+</html>

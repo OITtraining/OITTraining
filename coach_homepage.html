@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Training Log</title>
+  <title>Coach Dashboard</title>
   <style>
     * {
       text-decoration: none;
@@ -32,7 +32,7 @@
     .logo a {
       font-size: 35px;
       font-weight: 600;
-      color: black; /* black logo text */
+      color: black;
     }
 
     ul.nav-links {
@@ -41,11 +41,11 @@
       margin: 0;
       padding: 0;
       list-style: none;
-      gap: 30px; /* space between links */
+      gap: 30px;
     }
 
     ul.nav-links li a {
-      color: black; /* black nav link text */
+      color: black;
       font-size: 24px;
       font-weight: bold;
     }
@@ -76,7 +76,7 @@
 
     /* Main container */
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 2rem auto;
       padding: 1rem;
       background: white;
@@ -84,26 +84,15 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    h1, h2 {
+    h1 {
       text-align: center;
     }
 
-    form {
-      margin-bottom: 2rem;
-    }
-
-    input, textarea, button {
-      display: block;
-      width: 100%;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-    }
-
     /* Scrollable workouts list */
-    ul#logs {
+    ul#allAthletes {
       list-style: none;
       padding: 0;
-      max-height: 400px;
+      max-height: 600px;
       overflow-y: auto;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -112,7 +101,7 @@
       scroll-behavior: smooth;
     }
 
-    ul#logs li {
+    ul#allAthletes li {
       background: white;
       padding: 0.75rem;
       margin-bottom: 0.5rem;
@@ -120,7 +109,6 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
   </style>
-
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
@@ -131,36 +119,20 @@
   <nav class="navbar">
     <div class="navdiv">
       <div class="logo"><a href="#">Tech Training</a></div>
-
-      <ul class="nav-links">
-        <li><a href="#">Add Workout</a></li>
-        <li><a href="#">Workouts</a></li>
-      </ul>
-
       <div id="userContainer">
         <!-- Buttons or user name inserted by JS -->
       </div>
     </div>
   </nav>
 
-
   <div class="container">
-    <h1>Team Training Log</h1>
-    <!-- Workout Form -->
-    <form id="logForm">
-      <input type="text" id="name" placeholder="Your Name" required>
-      <input type="date" id="date" required>
-      <input type="text" id="workout" placeholder="Workout (e.g., 5 miles easy)" required>
-      <textarea id="notes" placeholder="Notes (optional)"></textarea>
-      <button type="submit">Add Workout</button>
-    </form>
-
-    <!-- Workout List -->
-    <h2>Workouts</h2>
-    <ul id="logs"></ul>
+    <h1>Coach Dashboard</h1>
+    <p style="text-align:center;">All athletes:</p>
+    <ul id="allAthletes"></ul>
   </div>
+
   <script>
-    // Firebase configuration
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
       authDomain: "ottraining-69ef4.firebaseapp.com",
@@ -170,28 +142,24 @@
       appId: "1:716640190687:web:23e500028b40f8c81d696a"
     };
 
-    // Initialize Firebase
+    // Init Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
     const userContainer = document.getElementById('userContainer');
-    const form = document.getElementById('logForm');
-    const logsList = document.getElementById('logs');
+    const allWorkouts = document.getElementById('allWorkouts');
 
-    // Check login state and update navbar
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const userRef = db.collection('users').doc(user.uid);
-
-        // Get user name from Firestore
         const doc = await userRef.get();
-        let name = user.email; // fallback
-        if (doc.exists) {
-          name = doc.data().name;
-        }
+        if (!doc.exists) return;
 
-        // Display clickable user name + logout button
+        const userData = doc.data();
+        let name = userData.name || user.email;
+
+        // Navbar: show name + logout
         userContainer.innerHTML = `
           <a href="account.html">${name}</a>
           <button id="logoutBtn">Logout</button>
@@ -200,43 +168,43 @@
           auth.signOut();
         });
 
-        // Submit workout to Firestore under this user
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const workoutName = document.getElementById('name').value;
-          const date = document.getElementById('date').value;
-          const workout = document.getElementById('workout').value;
-          const notes = document.getElementById('notes').value;
+        // If this user isn't a coach, send them back to athlete home
+        if (userData.role !== "coach") {
+          window.location.href = "index.html";
+          return;
+        }
 
-          try {
-            await userRef.collection('workouts').add({
-              name: workoutName,
-              date,
-              workout,
-              notes,
-              timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        // Coaches: view ALL workouts across all athletes
+        // Instead of collectionGroup('workouts'), get all users
+        db.collection('users').onSnapshot((snapshot) => {
+            allWorkouts.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const userData = doc.data();
+                if (userData.role === "athlete") {  // only show athletes
+                    const li = document.createElement('li');
+                    const button = document.createElement('button');
+                    button.textContent = userData.name || doc.id; // fallback to uid if no name
+                    button.style.padding = "10px 15px";
+                    button.style.margin = "5px";
+                    button.style.borderRadius = "6px";
+                    button.style.border = "none";
+                    button.style.cursor = "pointer";
+                    button.style.backgroundColor = "#f8bc2c";
+                    button.style.fontWeight = "bold";
+
+                    // When clicked → go to athlete_workouts.html with user id in query string
+                    button.addEventListener('click', () => {
+                        window.location.href = `athlete_workouts.html?uid=${doc.id}`;
+                    });
+
+                    li.appendChild(button);
+                    allWorkouts.appendChild(li);
+                }
             });
-            form.reset();
-          } catch (error) {
-            console.error("Error adding workout: ", error);
-          }
         });
 
-        // Real-time listener to display workouts for this user
-        userRef.collection('workouts')
-          .orderBy('timestamp', 'desc')
-          .onSnapshot((snapshot) => {
-            logsList.innerHTML = '';
-            snapshot.forEach((doc) => {
-              const data = doc.data();
-              const li = document.createElement('li');
-              li.innerHTML = `<strong>${data.date}</strong> - ${data.name}: ${data.workout} <br><em>${data.notes || ''}</em>`;
-              logsList.appendChild(li);
-            });
-          });
 
       } else {
-        // Not logged in: show Login / Sign Up buttons
         userContainer.innerHTML = `
           <button onclick="window.location.href='login.html'">Login</button>
           <button onclick="window.location.href='signup.html'">Sign Up</button>
