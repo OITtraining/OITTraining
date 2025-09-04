@@ -121,6 +121,14 @@
     const workoutList = document.getElementById('workoutList');
     const athleteNameEl = document.getElementById('athleteName');
 
+    userContainer.innerHTML = `
+      <a href="#">${name}</a>
+      <button id="logoutBtn">Logout</button>
+    `;
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      auth.signOut();
+    });
+
     // Get athlete uid from URL
     const params = new URLSearchParams(window.location.search);
     const uid = params.get('uid');
