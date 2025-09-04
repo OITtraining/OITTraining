@@ -156,6 +156,61 @@
       max-height: 300px;
     }
   }
+  /* Hamburger (hidden on desktop) */
+  .hamburger {
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: none;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px; /* hidden by default */
+    width: 250px;
+    height: 100%;
+    background: #fff;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    padding: 20px;
+    transition: left 0.3s ease;
+    z-index: 1000;
+  }
+  .sidebar.active {
+    left: 0;
+  }
+  .sidebar .close-btn {
+    font-size: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    float: right;
+  }
+  .sidebar .nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 40px;
+  }
+  .sidebar #mobileUserContainer {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Show hamburger on mobile, hide desktop links */
+  @media (max-width: 600px) {
+    .hamburger {
+      display: block;
+    }
+    .desktop-only {
+      display: none;
+    }
+  }
+
 </style>
 
 
@@ -170,16 +225,30 @@
     <div class="navdiv">
       <div class="logo"><a href="#">Tech Training</a></div>
 
-      <ul class="nav-links">
+      <!-- Hamburger button (mobile only) -->
+      <button class="hamburger" id="hamburgerBtn">☰</button>
+
+      <!-- Desktop links -->
+      <ul class="nav-links desktop-only">
         <li><a href="#">Add Workout</a></li>
         <li><a href="#">Workouts</a></li>
       </ul>
 
-      <div id="userContainer">
-        <!-- Buttons or user name inserted by JS -->
-      </div>
+      <!-- Desktop user container -->
+      <div id="userContainer" class="desktop-only"></div>
     </div>
   </nav>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar">
+    <button id="closeSidebar" class="close-btn">✕</button>
+    <ul class="nav-links">
+      <li><a href="#">Add Workout</a></li>
+      <li><a href="#">Workouts</a></li>
+    </ul>
+    <div id="mobileUserContainer"></div>
+  </div>
+
 
 
   <div class="container">
@@ -197,7 +266,7 @@
     <h2>Workouts</h2>
     <ul id="logs"></ul>
   </div>
-  <script>
+    <script>
     // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
@@ -217,20 +286,66 @@
     const form = document.getElementById('logForm');
     const logsList = document.getElementById('logs');
 
+    // Sidebar toggle logic
+    const sidebar = document.createElement("div");
+    sidebar.id = "sidebar";
+    sidebar.style.cssText = `
+      position: fixed;
+      top: 0; left: -100%;
+      width: 70%; max-width: 250px;
+      height: 100%;
+      background: white;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      transition: left 0.3s ease;
+      padding: 20px;
+      z-index: 1000;
+    `;
+    document.body.appendChild(sidebar);
+
+    const overlay = document.createElement("div");
+    overlay.id = "overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 999;
+    `;
+    document.body.appendChild(overlay);
+
+    const hamburger = document.createElement("div");
+    hamburger.innerHTML = "&#9776;"; // ☰
+    hamburger.style.cssText = "font-size:28px; cursor:pointer; display:none; margin-left:10px;";
+    document.querySelector(".navdiv").prepend(hamburger);
+
+    hamburger.addEventListener("click", () => {
+      sidebar.style.left = "0";
+      overlay.style.display = "block";
+    });
+
+    overlay.addEventListener("click", () => {
+      sidebar.style.left = "-100%";
+      overlay.style.display = "none";
+    });
+
+    function updateSidebarContent(innerHTML) {
+      sidebar.innerHTML = innerHTML;
+    }
+
     // Check login state and update navbar
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const userRef = db.collection('users').doc(user.uid);
 
-        // Get user name from Firestore
         const doc = await userRef.get();
         const userData = doc.data();
-        let name = user.email; // fallback
+        let name = user.email;
         if (doc.exists) {
           name = doc.data().name;
         }
 
-        // Display clickable user name + logout button
+        // Navbar: show name + logout
         userContainer.innerHTML = `
           <a href="#">${name}</a>
           <button id="logoutBtn">Logout</button>
@@ -239,12 +354,28 @@
           auth.signOut();
         });
 
+        // Sidebar content (for mobile)
+        updateSidebarContent(`
+          <h2 style="margin-top:0;">Menu</h2>
+          <a href="#" style="display:block; margin-bottom:10px;">Add Workout</a>
+          <a href="#" style="display:block; margin-bottom:10px;">Workouts</a>
+          <a href="#" style="display:block; margin-bottom:10px;">${name}</a>
+          <button id="sidebarLogout" style="
+            display:block; margin-top:20px;
+            background:black; color:white; padding:10px;
+            border:none; border-radius:6px; cursor:pointer;">Logout</button>
+        `);
+        document.getElementById('sidebarLogout').addEventListener('click', () => {
+          auth.signOut();
+        });
+
+        // Redirect if coach
         if (userData.role !== "athlete") {
           window.location.href = "coach_homepage.html";
           return;
         }
 
-        // Submit workout to Firestore under this user
+        // Submit workout
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
           const workoutName = document.getElementById('name').value;
@@ -266,7 +397,7 @@
           }
         });
 
-        // Real-time listener to display workouts for this user
+        // Real-time listener
         userRef.collection('workouts')
           .orderBy('timestamp', 'desc')
           .onSnapshot((snapshot) => {
@@ -284,6 +415,23 @@
         return;
       }
     });
+
+    // Responsive toggle for mobile
+    function checkWidth() {
+      if (window.innerWidth <= 600) {
+        hamburger.style.display = "block";
+        document.querySelector(".nav-links").style.display = "none";
+        userContainer.style.display = "none";
+      } else {
+        hamburger.style.display = "none";
+        document.querySelector(".nav-links").style.display = "flex";
+        userContainer.style.display = "flex";
+        sidebar.style.left = "-100%";
+        overlay.style.display = "none";
+      }
+    }
+    window.addEventListener("resize", checkWidth);
+    window.addEventListener("load", checkWidth);
   </script>
 </body>
 </html>
