@@ -122,7 +122,6 @@
 
     <!-- Workout Form -->
     <form id="logForm">
-      <input type="text" id="name" placeholder="Your Name" required>
       <input type="date" id="date" required>
       <input type="text" id="workout" placeholder="Workout (e.g., 5 miles easy)" required>
       <textarea id="notes" placeholder="Notes (optional)"></textarea>
@@ -173,8 +172,8 @@
       const userRef = db.collection('users').doc(user.uid);
       const doc = await userRef.get();
       const userData = doc.data() || {};
-      let name = userData.name || user.email;
       const role = (userData.role || "").toLowerCase();
+      const name = userData.name || user.email;
 
       // Redirect coaches to coach dashboard
       if (role !== "athlete") {
@@ -206,14 +205,12 @@
       // --- Add workout ---
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const workoutName = document.getElementById('name').value;
         const date = document.getElementById('date').value;
         const workout = document.getElementById('workout').value;
         const notes = document.getElementById('notes').value;
 
         try {
           await userRef.collection('workouts').add({
-            name: workoutName,
             date,
             workout,
             notes,
@@ -237,7 +234,7 @@
             li.innerHTML = `
               <div class="workout-row">
                 <div class="workout-info">
-                  <strong>${data.date || ''}</strong> - ${data.name || ''}: ${data.workout || ''}
+                  <strong>${data.date || ''}</strong> - ${data.workout || ''}
                   <br><em>${data.notes || ''}</em>
                 </div>
                 <div class="workout-actions">

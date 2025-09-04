@@ -333,7 +333,7 @@
           snapshot.forEach((doc) => {
             const data = doc.data();
             const li = document.createElement("li");
-            li.innerHTML = `<strong>${data.date || ""}</strong> - ${data.name || ""}: ${data.workout || ""} <br><em>${data.notes || ""}</em>`;
+            li.innerHTML = `<strong>${data.date || ""}</strong> - ${data.workout || ""} <br><em>${data.notes || ""}</em>`;
             workoutList.appendChild(li);
           });
         });
