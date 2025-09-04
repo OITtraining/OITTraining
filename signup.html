@@ -134,14 +134,8 @@
         message.style.color = "green";
         message.textContent = "Account created successfully! Redirecting...";
         setTimeout(() => {
-            if (role == "Athlete")
-            {
-                window.location.href = "index.html"; // homepage
-            }
-            else if (role == "Coach")
-            {
-                window.location.href = "coach_homepage.html";
-            }
+            window.location.href = "index.html";
+            return;
         }, 1500);
       } catch (error) {
         console.error("Signup error:", error);
