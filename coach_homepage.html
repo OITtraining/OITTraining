@@ -154,7 +154,7 @@
     const db = firebase.firestore();
 
     const userContainer = document.getElementById('userContainer');
-    const allWorkouts = document.getElementById('allWorkouts');
+    const allAthletes = document.getElementById('allAthletes');
 
     auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -183,7 +183,7 @@
         // Coaches: view ALL workouts across all athletes
         // Instead of collectionGroup('workouts'), get all users
         db.collection('users').onSnapshot((snapshot) => {
-            allWorkouts.innerHTML = '';
+            allAthletes.innerHTML = '';
             snapshot.forEach((doc) => {
                 const userData = doc.data();
                 if (userData.role === "athlete") {  // only show athletes
@@ -200,11 +200,11 @@
 
                     // When clicked → go to athlete_workouts.html with user id in query string
                     button.addEventListener('click', () => {
-                        window.location.href = `athlete_workouts.html?uid=${doc.id}`;
+                        window.location.href = `athlete_workout.html?uid=${doc.id}`;
                     });
 
                     li.appendChild(button);
-                    allWorkouts.appendChild(li);
+                    allAthletes.appendChild(li);
                 }
             });
         });
