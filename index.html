@@ -37,7 +37,7 @@
 
     /* Hamburger (mobile only) */
     .hamburger {
-      font-size: 28px; background: none; border: none; cursor: pointer; display: none;
+      font-size: 28px; background: none; border: none; cursor: pointer; display: none; color:black;
     }
 
     /* Sidebar (mobile) */
@@ -90,7 +90,7 @@
     @media (max-width: 600px) {
       .logo a { font-size: 24px; }
       ul.nav-links, #userContainer { display: none; }
-      .hamburger { display: block; }
+      .hamburger { display: block; color: black;}
       .container { padding: 0.5rem; }
       input, textarea, button { font-size: 14px; padding: 0.4rem; }
       ul#logs { max-height: 300px; }
@@ -123,8 +123,8 @@
     <!-- Workout Form -->
     <form id="logForm">
       <input type="date" id="date" required>
-      <input type="text" id="workout" placeholder="Workout (e.g., 5 miles easy)" required>
-      <textarea id="notes" placeholder="Notes (optional)"></textarea>
+      <input type="text" id="workout" placeholder="Workout" required>
+      <textarea id="notes" placeholder="Notes" required></textarea>
       <button type="submit">Add Workout</button>
     </form>
 
