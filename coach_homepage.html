@@ -266,14 +266,16 @@
       }
 
       // List athletes
-      db.collection('users').onSnapshot((snapshot) => {
-        allAthletes.innerHTML = '';
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.role === "athlete") {
-            const li = document.createElement('li');
-            const button = document.createElement('button');
-            button.textContent = data.name || doc.id;
+      db.collection("users")
+        .where("role", "==", "athlete")
+        .orderBy("name")
+        .onSnapshot((snapshot) => {
+          allAthletes.innerHTML = "";
+          snapshot.forEach((doc) => {
+            const userData = doc.data();
+            const li = document.createElement("li");
+            const button = document.createElement("button");
+            button.textContent = userData.name || doc.id;
             button.style.padding = "10px 15px";
             button.style.margin = "5px";
             button.style.borderRadius = "6px";
@@ -281,15 +283,16 @@
             button.style.cursor = "pointer";
             button.style.backgroundColor = "#f8bc2c";
             button.style.fontWeight = "bold";
-            button.addEventListener('click', () => {
+
+            button.addEventListener("click", () => {
               window.location.href = `athlete_workout.html?uid=${doc.id}`;
             });
+
             li.appendChild(button);
             allAthletes.appendChild(li);
-          }
+          });
         });
       });
-    });
   </script>
 </body>
 </html>
