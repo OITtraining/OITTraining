@@ -224,23 +224,23 @@
 
       // --- Render workouts with Edit/Delete ---
       userRef.collection('workouts').onSnapshot((snapshot) => {
-      // Group workouts by week
+      // Group workouts by week number
       const weeks = {};
+      const anchorMonday = new Date("2025-09-01"); // Week 1 starts here
+
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         const id = docSnap.id;
         if (!data.date) return;
 
-        // Compute Monday–Sunday range for this workout's date
-        const d = new Date(data.date);
-        const day = d.getUTCDay(); // Sunday = 0
-        const diff = (day === 0 ? -6 : 1) - day;
-        const monday = new Date(d);
-        monday.setUTCDate(d.getUTCDate() + diff);
-        const sunday = new Date(monday);
-        sunday.setUTCDate(monday.getUTCDate() + 6);
+        const d = new Date(data.date + "T00:00:00Z");
 
-        const weekKey = `${monday.toISOString().slice(0,10)} - ${sunday.toISOString().slice(0,10)}`;
+        // Days between workout date and anchor Monday
+        const diffDays = Math.floor((d - anchorMonday) / (1000 * 60 * 60 * 24));
+
+        // Compute week number (Week 1 = 2025-09-01 → 2025-09-07)
+        const weekNum = Math.floor(diffDays / 7) + 1;
+        const weekKey = `Week ${weekNum}`;
 
         if (!weeks[weekKey]) weeks[weekKey] = [];
         weeks[weekKey].push({ ...data, id });
@@ -249,16 +249,20 @@
       // Clear and rebuild logs
       logsList.innerHTML = '';
 
-      // Sort weeks (newest first)
-      Object.keys(weeks).sort().reverse().forEach(weekKey => {
+      // Sort weeks by number (newest first)
+      Object.keys(weeks).sort((a,b) => {
+        const numA = parseInt(a.replace("Week ",""));
+        const numB = parseInt(b.replace("Week ",""));
+        return numB - numA;
+      }).forEach(weekKey => {
         const details = document.createElement('details');
         const summary = document.createElement('summary');
-        summary.textContent = `Week ${weekKey}`;
+        summary.textContent = weekKey;
         details.appendChild(summary);
 
         const ul = document.createElement('ul');
 
-        // Sort workouts by date inside the week
+        // Sort workouts inside the week by date
         weeks[weekKey].sort((a,b)=>a.date.localeCompare(b.date)).forEach(data=>{
           const li = document.createElement('li');
           li.innerHTML = `
@@ -313,6 +317,7 @@
         }
       }
     })});
+
 
   </script>
 </body>
