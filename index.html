@@ -7,26 +7,37 @@
 
   <style>
     * { text-decoration: none; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f9f9f9;
+    }
 
     /* Navbar */
     .navbar { background: #f8bc2c; padding: 10px 20px; min-height: 60px; }
     .navdiv { display: flex; align-items: center; justify-content: space-between; }
     .logo a { font-size: 35px; font-weight: 600; color: black; }
 
+    ul.nav-links {
+      display: flex; align-items: center; margin: 0; padding: 0;
+      list-style: none; gap: 30px;
+    }
+    ul.nav-links li a { color: black; font-size: 24px; font-weight: bold; }
+
     #userContainer {
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
     #userContainer button, #userContainer a {
-      background-color: black; color: white; border: none; border-radius: 6px;
-      padding: 5px 10px; font-weight: bold; cursor: pointer; text-decoration: none; white-space: nowrap;
+      white-space: nowrap; background-color: black; color: white;
+      border: none; border-radius: 6px; padding: 5px 10px;
+      font-weight: bold; cursor: pointer; text-decoration: none;
     }
     #userContainer button:hover, #userContainer a:hover { opacity: 0.85; }
 
     /* Hamburger (mobile only) */
     .hamburger {
-      font-size: 28px; background: none; border: none; cursor: pointer;
-      display: none; color:black;
+      font-size: 28px; background: none; border: none; cursor: pointer; display: none; color:black;
     }
 
     /* Sidebar (mobile) */
@@ -47,18 +58,24 @@
     }
 
     h1, h2 { text-align: center; }
-    input, textarea, button { display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem; }
-
-    /* Weekly sections */
-    details { margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 6px; padding: 0.5rem; background: #fff; }
-    summary { font-weight: bold; cursor: pointer; }
-
-    ul { list-style: none; padding: 0; }
-    li {
-      background: white; padding: 0.75rem; margin-bottom: 0.5rem;
-      border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    form { margin-bottom: 2rem; }
+    input, textarea, button {
+      display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem;
     }
 
+    /* Scrollable workouts list */
+    ul#logs {
+      list-style: none; padding: 0; max-height: 400px; overflow-y: auto;
+      border: 1px solid #ccc; border-radius: 6px; background: #fff;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); scroll-behavior: smooth;
+    }
+    ul#logs li {
+      background: white; padding: 0.75rem; margin-bottom: 0.5rem;
+      border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      word-wrap: break-word;
+    }
+
+    /* Edit/Delete button styling */
     .workout-row { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
     .workout-info { flex:1; min-width:0; }
     .workout-actions { display:flex; gap:8px; }
@@ -72,10 +89,11 @@
     /* Mobile responsiveness */
     @media (max-width: 600px) {
       .logo a { font-size: 24px; }
-      #userContainer { display: none; }
-      .hamburger { display: block; }
+      ul.nav-links, #userContainer { display: none; }
+      .hamburger { display: block; color: black;}
       .container { padding: 0.5rem; }
       input, textarea, button { font-size: 14px; padding: 0.4rem; }
+      ul#logs { max-height: 300px; }
     }
   </style>
 
@@ -89,10 +107,13 @@
     <div class="navdiv">
       <button class="hamburger" aria-label="Open menu">&#9776;</button>
       <div class="logo"><a href="#">Tech Training</a></div>
+
+      <!-- Desktop user container -->
       <div id="userContainer"></div>
     </div>
   </nav>
 
+  <!-- Sidebar (mobile) -->
   <div id="sidebar"></div>
   <div id="overlay"></div>
 
@@ -103,27 +124,36 @@
     <form id="logForm">
       <input type="date" id="date" required>
       <input type="text" id="workout" placeholder="Workout" required>
-      <textarea id="notes" placeholder="Notes"></textarea>
+      <textarea id="notes" placeholder="Notes" required></textarea>
       <button type="submit">Add Workout</button>
     </form>
 
-    <!-- Weekly Workouts -->
+    <!-- Workout List -->
     <h2>Workouts</h2>
-    <div id="weeklyLogs"></div>
+    <ul id="logs"></ul>
   </div>
 
   <script>
     // Firebase config
-    const firebaseConfig = { /* your config */ };
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxmrkBALgyOLfaFWtbYuF76n2k3vWmVbo",
+      authDomain: "ottraining-69ef4.firebaseapp.com",
+      projectId: "ottraining-69ef4",
+      storageBucket: "ottraining-69ef4.appspot.com",
+      messagingSenderId: "716640190687",
+      appId: "1:716640190687:web:23e500028b40f8c81d696a"
+    };
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
     const userContainer = document.getElementById('userContainer');
     const form = document.getElementById('logForm');
-    const weeklyLogs = document.getElementById('weeklyLogs');
+    const logsList = document.getElementById('logs');
 
-    // Sidebar toggle
+    // Sidebar refs
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const hamburger = document.querySelector('.hamburger');
@@ -132,42 +162,39 @@
     hamburger.addEventListener('click', openSidebar);
     overlay.addEventListener('click', closeSidebar);
 
-    function getWeekStart(dateStr) {
-      const d = new Date(dateStr);
-      const day = d.getUTCDay(); // 0=Sun, 1=Mon
-      const diff = (day === 0 ? -6 : 1) - day;
-      const monday = new Date(d);
-      monday.setUTCDate(d.getUTCDate() + diff);
-      return monday.toISOString().slice(0,10);
-    }
-    function getWeekRange(dateStr) {
-      const monday = new Date(getWeekStart(dateStr));
-      const sunday = new Date(monday);
-      sunday.setUTCDate(monday.getUTCDate() + 6);
-      return `${monday.toISOString().slice(0,10)} - ${sunday.toISOString().slice(0,10)}`;
-    }
-
+    // Auth state
     auth.onAuthStateChanged(async (user) => {
-      if (!user) { window.location.href = "signup.html"; return; }
+      if (!user) {
+        window.location.href = "signup.html";
+        return;
+      }
+
       const userRef = db.collection('users').doc(user.uid);
       const doc = await userRef.get();
       const userData = doc.data() || {};
       const role = (userData.role || "").toLowerCase();
       const name = userData.name || user.email;
 
-      if (role !== "athlete") { window.location.href = "coach_homepage.html"; return; }
+      // Redirect coaches to coach dashboard
+      if (role !== "athlete") {
+        window.location.href = "coach_homepage.html";
+        return;
+      }
 
-      // Navbar
-      userContainer.innerHTML = `<a href="#">${name}</a><button id="logoutBtn">Logout</button>`;
+      // Desktop navbar
+      userContainer.innerHTML = `
+        <a href="#">${name}</a>
+        <button id="logoutBtn">Logout</button>
+      `;
       document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-      // Sidebar
+      // Sidebar (mobile)
       sidebar.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
           <h2 style="margin:0; font-size:20px;">Menu</h2>
           <button id="closeSidebar" style="font-size:24px; background:none; border:none; cursor:pointer;">✕</button>
         </div>
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
           <a href="#" style="background:#000; color:#fff; padding:8px 10px; border-radius:6px; text-decoration:none;">${name}</a>
           <button id="logoutBtnMobile" style="background:#000; color:#fff; padding:10px; border:none; border-radius:6px; cursor:pointer;">Logout</button>
         </div>
@@ -175,78 +202,81 @@
       document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
       document.getElementById('logoutBtnMobile').addEventListener('click', () => auth.signOut());
 
-      // Add workout
+      // --- Add workout ---
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const date = document.getElementById('date').value;
         const workout = document.getElementById('workout').value;
         const notes = document.getElementById('notes').value;
-        await userRef.collection('workouts').add({ date, workout, notes });
-        form.reset();
+
+        try {
+          await userRef.collection('workouts').add({
+            date,
+            workout,
+            notes,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          form.reset();
+        } catch (error) {
+          console.error("Error adding workout: ", error);
+        }
       });
 
-      // Weekly grouped workouts
-      userRef.collection('workouts').onSnapshot(snapshot => {
-        const weeks = {};
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          const id = docSnap.id;
-          if (!data.date) return;
-          const weekKey = getWeekRange(data.date);
-          if (!weeks[weekKey]) weeks[weekKey] = [];
-          weeks[weekKey].push({ ...data, id });
-        });
-
-        weeklyLogs.innerHTML = '';
-        Object.keys(weeks).sort().reverse().forEach(weekKey => {
-          const details = document.createElement('details');
-          const summary = document.createElement('summary');
-          summary.textContent = `Week ${weekKey}`;
-          const ul = document.createElement('ul');
-
-          weeks[weekKey].sort((a,b)=>a.date.localeCompare(b.date)).forEach(data=>{
+      // --- Render workouts with Edit/Delete ---
+      userRef.collection('workouts')
+        .orderBy('date', 'desc')
+        .onSnapshot((snapshot) => {
+          logsList.innerHTML = '';
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const id = docSnap.id;
             const li = document.createElement('li');
             li.innerHTML = `
               <div class="workout-row">
                 <div class="workout-info">
-                  <strong>${data.date}</strong> - ${data.workout}<br><em>${data.notes||''}</em>
+                  <strong>${data.date || ''}</strong> - ${data.workout || ''}
+                  <br><em>${data.notes || ''}</em>
                 </div>
                 <div class="workout-actions">
-                  <button class="edit" data-id="${data.id}">Edit</button>
-                  <button class="delete" data-id="${data.id}">Delete</button>
+                  <button class="edit" data-id="${id}">Edit</button>
+                  <button class="delete" data-id="${id}">Delete</button>
                 </div>
               </div>
             `;
-            ul.appendChild(li);
+            logsList.appendChild(li);
           });
-
-          details.appendChild(summary);
-          details.appendChild(ul);
-          weeklyLogs.appendChild(details);
         });
-      });
 
-      // Edit/Delete
-      weeklyLogs.addEventListener('click', async (e) => {
+      // --- Edit/Delete handlers ---
+      logsList.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
         const id = btn.dataset.id;
         const docRef = userRef.collection('workouts').doc(id);
 
         if (btn.classList.contains('delete')) {
-          if (confirm('Delete this workout?')) await docRef.delete();
+          if (confirm('Delete this workout?')) {
+            try { await docRef.delete(); } catch (err) { console.error(err); }
+          }
         }
+
         if (btn.classList.contains('edit')) {
-          const snap = await docRef.get();
-          if (!snap.exists) return;
-          const w = snap.data();
-          const newDate = prompt('Date (YYYY-MM-DD):', w.date || '');
-          if (newDate === null) return;
-          const newWorkout = prompt('Workout:', w.workout || '');
-          if (newWorkout === null) return;
-          const newNotes = prompt('Notes:', w.notes || '');
-          if (newNotes === null) return;
-          await docRef.update({ date: newDate, workout: newWorkout, notes: newNotes });
+          try {
+            const snap = await docRef.get();
+            if (!snap.exists) return;
+            const w = snap.data();
+
+            const newDate = prompt('Date (YYYY-MM-DD):', w.date || '');
+            if (newDate === null) return;
+            const newWorkout = prompt('Workout:', w.workout || '');
+            if (newWorkout === null) return;
+            const newNotes = prompt('Notes:', w.notes || '');
+            if (newNotes === null) return;
+
+            await docRef.update({ date: newDate, workout: newWorkout, notes: newNotes });
+          } catch (err) {
+            console.error(err);
+          }
         }
       });
     });
