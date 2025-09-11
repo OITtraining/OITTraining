@@ -224,7 +224,7 @@
 
       // --- Render workouts with Edit/Delete ---
       userRef.collection('workouts')
-        .orderBy('timestamp', 'desc')
+        .orderBy('date', 'desc')
         .onSnapshot((snapshot) => {
           logsList.innerHTML = '';
           snapshot.forEach((docSnap) => {
