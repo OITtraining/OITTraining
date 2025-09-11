@@ -1,49 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Team Training Log</title>
+
   <style>
     * { text-decoration: none; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; }
 
     /* Navbar */
     .navbar { background: #f8bc2c; padding: 10px 20px; min-height: 60px; }
-    .navdiv { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .navdiv { display: flex; align-items: center; justify-content: space-between; }
     .logo a { font-size: 35px; font-weight: 600; color: black; }
-    ul.nav-links { display: flex; gap: 30px; list-style: none; padding: 0; margin: 0; }
-    ul.nav-links li a { color: black; font-size: 24px; font-weight: bold; }
 
-    #userContainer { display: flex; gap: 10px; flex-wrap: wrap; }
+    #userContainer {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
     #userContainer button, #userContainer a {
-      background-color: black; color: white; border: none;
-      border-radius: 6px; padding: 5px 10px; font-weight: bold;
-      cursor: pointer; text-decoration: none; white-space: nowrap;
+      background-color: black; color: white; border: none; border-radius: 6px;
+      padding: 5px 10px; font-weight: bold; cursor: pointer; text-decoration: none; white-space: nowrap;
     }
     #userContainer button:hover, #userContainer a:hover { opacity: 0.85; }
+
+    /* Hamburger (mobile only) */
+    .hamburger {
+      font-size: 28px; background: none; border: none; cursor: pointer;
+      display: none; color:black;
+    }
+
+    /* Sidebar (mobile) */
+    #sidebar {
+      position: fixed; top: 0; left: -100%; width: 70%; max-width: 260px; height: 100%;
+      background: #ffffff; box-shadow: 2px 0 6px rgba(0,0,0,0.25);
+      transition: left 0.3s ease; padding: 20px; z-index: 1000;
+    }
+    #overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.45); display: none; z-index: 999;
+    }
 
     /* Main container */
     .container {
       max-width: 600px; margin: 2rem auto; padding: 1rem; background: white;
       border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 90%;
     }
+
     h1, h2 { text-align: center; }
-    input, textarea, button {
-      display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem;
-    }
+    input, textarea, button { display: block; width: 100%; margin: 0.5rem 0; padding: 0.5rem; }
 
     /* Weekly sections */
     details { margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 6px; padding: 0.5rem; background: #fff; }
     summary { font-weight: bold; cursor: pointer; }
+
     ul { list-style: none; padding: 0; }
     li {
       background: white; padding: 0.75rem; margin-bottom: 0.5rem;
       border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      word-wrap: break-word;
+    }
+
+    .workout-row { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .workout-info { flex:1; min-width:0; }
+    .workout-actions { display:flex; gap:8px; }
+    .workout-actions button {
+      background:#000; color:#fff; border:none; border-radius:6px; padding:6px 10px;
+      font-weight:bold; cursor:pointer;
+    }
+    .workout-actions button.edit { background:#17396a; }
+    .workout-actions button.delete { background:#b00020; }
+
+    /* Mobile responsiveness */
+    @media (max-width: 600px) {
+      .logo a { font-size: 24px; }
+      #userContainer { display: none; }
+      .hamburger { display: block; }
+      .container { padding: 0.5rem; }
+      input, textarea, button { font-size: 14px; padding: 0.4rem; }
     }
   </style>
 
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
@@ -51,25 +87,27 @@
 <body>
   <nav class="navbar">
     <div class="navdiv">
+      <button class="hamburger" aria-label="Open menu">&#9776;</button>
       <div class="logo"><a href="#">Tech Training</a></div>
-      <ul class="nav-links">
-        <li><a href="#">Add Workout</a></li>
-        <li><a href="#">Workouts</a></li>
-      </ul>
       <div id="userContainer"></div>
     </div>
   </nav>
 
+  <div id="sidebar"></div>
+  <div id="overlay"></div>
+
   <div class="container">
     <h1>Team Training Log</h1>
+
+    <!-- Workout Form -->
     <form id="logForm">
-      <input type="text" id="name" placeholder="Your Name" required>
       <input type="date" id="date" required>
-      <input type="text" id="workout" placeholder="Workout (e.g., 5 miles easy)" required>
-      <textarea id="notes" placeholder="Notes (optional)"></textarea>
+      <input type="text" id="workout" placeholder="Workout" required>
+      <textarea id="notes" placeholder="Notes"></textarea>
       <button type="submit">Add Workout</button>
     </form>
 
+    <!-- Weekly Workouts -->
     <h2>Workouts</h2>
     <div id="weeklyLogs"></div>
   </div>
@@ -81,10 +119,19 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    const userContainer = document.getElementById('userContainer');
     const form = document.getElementById('logForm');
     const weeklyLogs = document.getElementById('weeklyLogs');
 
-    // Helpers to calculate week range
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const hamburger = document.querySelector('.hamburger');
+    const openSidebar = () => { sidebar.style.left = "0"; overlay.style.display = "block"; }
+    const closeSidebar = () => { sidebar.style.left = "-100%"; overlay.style.display = "none"; }
+    hamburger.addEventListener('click', openSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
     function getWeekStart(dateStr) {
       const d = new Date(dateStr);
       const day = d.getUTCDay(); // 0=Sun, 1=Mon
@@ -103,28 +150,51 @@
     auth.onAuthStateChanged(async (user) => {
       if (!user) { window.location.href = "signup.html"; return; }
       const userRef = db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      const userData = doc.data() || {};
+      const role = (userData.role || "").toLowerCase();
+      const name = userData.name || user.email;
 
+      if (role !== "athlete") { window.location.href = "coach_homepage.html"; return; }
+
+      // Navbar
+      userContainer.innerHTML = `<a href="#">${name}</a><button id="logoutBtn">Logout</button>`;
+      document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+      // Sidebar
+      sidebar.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="margin:0; font-size:20px;">Menu</h2>
+          <button id="closeSidebar" style="font-size:24px; background:none; border:none; cursor:pointer;">✕</button>
+        </div>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+          <a href="#" style="background:#000; color:#fff; padding:8px 10px; border-radius:6px; text-decoration:none;">${name}</a>
+          <button id="logoutBtnMobile" style="background:#000; color:#fff; padding:10px; border:none; border-radius:6px; cursor:pointer;">Logout</button>
+        </div>
+      `;
+      document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
+      document.getElementById('logoutBtnMobile').addEventListener('click', () => auth.signOut());
+
+      // Add workout
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const workoutName = document.getElementById('name').value;
         const date = document.getElementById('date').value;
         const workout = document.getElementById('workout').value;
         const notes = document.getElementById('notes').value;
-        await userRef.collection('workouts').add({
-          name: workoutName, date, workout, notes,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        await userRef.collection('workouts').add({ date, workout, notes });
         form.reset();
       });
 
-      // Group by week
+      // Weekly grouped workouts
       userRef.collection('workouts').onSnapshot(snapshot => {
         const weeks = {};
-        snapshot.forEach(doc => {
-          const data = doc.data();
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          const id = docSnap.id;
+          if (!data.date) return;
           const weekKey = getWeekRange(data.date);
           if (!weeks[weekKey]) weeks[weekKey] = [];
-          weeks[weekKey].push(data);
+          weeks[weekKey].push({ ...data, id });
         });
 
         weeklyLogs.innerHTML = '';
@@ -135,8 +205,18 @@
           const ul = document.createElement('ul');
 
           weeks[weekKey].sort((a,b)=>a.date.localeCompare(b.date)).forEach(data=>{
-            const li=document.createElement('li');
-            li.innerHTML=`<strong>${data.date}</strong> - ${data.name}: ${data.workout}<br><em>${data.notes||''}</em>`;
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <div class="workout-row">
+                <div class="workout-info">
+                  <strong>${data.date}</strong> - ${data.workout}<br><em>${data.notes||''}</em>
+                </div>
+                <div class="workout-actions">
+                  <button class="edit" data-id="${data.id}">Edit</button>
+                  <button class="delete" data-id="${data.id}">Delete</button>
+                </div>
+              </div>
+            `;
             ul.appendChild(li);
           });
 
@@ -144,6 +224,30 @@
           details.appendChild(ul);
           weeklyLogs.appendChild(details);
         });
+      });
+
+      // Edit/Delete
+      weeklyLogs.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const docRef = userRef.collection('workouts').doc(id);
+
+        if (btn.classList.contains('delete')) {
+          if (confirm('Delete this workout?')) await docRef.delete();
+        }
+        if (btn.classList.contains('edit')) {
+          const snap = await docRef.get();
+          if (!snap.exists) return;
+          const w = snap.data();
+          const newDate = prompt('Date (YYYY-MM-DD):', w.date || '');
+          if (newDate === null) return;
+          const newWorkout = prompt('Workout:', w.workout || '');
+          if (newWorkout === null) return;
+          const newNotes = prompt('Notes:', w.notes || '');
+          if (newNotes === null) return;
+          await docRef.update({ date: newDate, workout: newWorkout, notes: newNotes });
+        }
       });
     });
   </script>
