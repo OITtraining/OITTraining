@@ -327,19 +327,64 @@
       }
 
       // Listen to workouts for that athlete
-      athleteRef
-        .collection("workouts")
-        .orderBy("date", "desc")
-        .onSnapshot((snapshot) => {
-          workoutList.innerHTML = "";
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            const li = document.createElement("li");
-            li.innerHTML = `<strong>${data.date || ""}</strong> - ${data.workout || ""} <br><em>${data.notes || ""}</em>`;
-            workoutList.appendChild(li);
-          });
+      athleteRef.collection("workouts").onSnapshot((snapshot) => {
+      // Group workouts by week number
+      const weeks = {};
+      const anchorMonday = new Date("2025-09-01"); // Week 1 anchor
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        if (!data.date) return;
+
+        const d = new Date(data.date + "T00:00:00Z");
+
+        // Days since anchor Monday
+        const diffDays = Math.floor((d - anchorMonday) / (1000 * 60 * 60 * 24));
+
+        // Week number
+        const weekNum = Math.floor(diffDays / 7) + 1;
+        const weekKey = `Week ${weekNum}`;
+
+        if (!weeks[weekKey]) weeks[weekKey] = [];
+        weeks[weekKey].push({ ...data, id });
+      });
+
+      // Clear workout list
+      workoutList.innerHTML = "";
+
+      // Sort weeks newest first
+      Object.keys(weeks)
+        .sort((a, b) => {
+          const numA = parseInt(a.replace("Week ", ""));
+          const numB = parseInt(b.replace("Week ", ""));
+          return numB - numA;
+        })
+        .forEach((weekKey) => {
+          const details = document.createElement("details");
+          const summary = document.createElement("summary");
+          summary.textContent = weekKey;
+          details.appendChild(summary);
+
+          const ul = document.createElement("ul");
+
+          // Sort workouts inside each week by date
+          weeks[weekKey]
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .forEach((data) => {
+              const li = document.createElement("li");
+              li.innerHTML = `
+                <strong>${data.date || ""}</strong> - ${data.workout || ""}
+                <br><em>${data.notes || ""}</em>
+              `;
+              ul.appendChild(li);
+            });
+
+          details.appendChild(ul);
+          workoutList.appendChild(details);
         });
     });
+  });
   </script>
 </body>
 </html>
