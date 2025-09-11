@@ -267,32 +267,38 @@
 
       // List athletes
       db.collection("users")
-        .where("role", "==", "athlete")
-        .orderBy("name")
-        .onSnapshot((snapshot) => {
-          allAthletes.innerHTML = "";
-          snapshot.forEach((doc) => {
-            const userData = doc.data();
-            const li = document.createElement("li");
-            const button = document.createElement("button");
-            button.textContent = userData.name || doc.id;
-            button.style.padding = "10px 15px";
-            button.style.margin = "5px";
-            button.style.borderRadius = "6px";
-            button.style.border = "none";
-            button.style.cursor = "pointer";
-            button.style.backgroundColor = "#f8bc2c";
-            button.style.fontWeight = "bold";
+      .where("role", "==", "athlete")
+      .onSnapshot((snapshot) => {
+        const athletes = [];
+        snapshot.forEach((doc) => {
+          athletes.push({ id: doc.id, ...doc.data() });
+        });
 
-            button.addEventListener("click", () => {
-              window.location.href = `athlete_workout.html?uid=${doc.id}`;
-            });
+        // Sort alphabetically by name client-side
+        athletes.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
-            li.appendChild(button);
-            allAthletes.appendChild(li);
+        allAthletes.innerHTML = "";
+        athletes.forEach((userData) => {
+          const li = document.createElement("li");
+          const button = document.createElement("button");
+          button.textContent = userData.name || userData.id;
+          button.style.padding = "10px 15px";
+          button.style.margin = "5px";
+          button.style.borderRadius = "6px";
+          button.style.border = "none";
+          button.style.cursor = "pointer";
+          button.style.backgroundColor = "#f8bc2c";
+          button.style.fontWeight = "bold";
+
+          button.addEventListener("click", () => {
+            window.location.href = `athlete_workout.html?uid=${userData.id}`;
           });
+
+          li.appendChild(button);
+          allAthletes.appendChild(li);
         });
       });
+    });
   </script>
 </body>
 </html>
