@@ -329,7 +329,7 @@
       // Listen to workouts for that athlete
       athleteRef
         .collection("workouts")
-        .orderBy("timestamp", "desc")
+        .orderBy("date", "desc")
         .onSnapshot((snapshot) => {
           workoutList.innerHTML = "";
           snapshot.forEach((doc) => {
