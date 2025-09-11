@@ -223,63 +223,97 @@
       });
 
       // --- Render workouts with Edit/Delete ---
-      userRef.collection('workouts')
-        .orderBy('timestamp', 'desc')
-        .onSnapshot((snapshot) => {
-          logsList.innerHTML = '';
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const id = docSnap.id;
-            const li = document.createElement('li');
-            li.innerHTML = `
-              <div class="workout-row">
-                <div class="workout-info">
-                  <strong>${data.date || ''}</strong> - ${data.workout || ''}
-                  <br><em>${data.notes || ''}</em>
-                </div>
-                <div class="workout-actions">
-                  <button class="edit" data-id="${id}">Edit</button>
-                  <button class="delete" data-id="${id}">Delete</button>
-                </div>
+      userRef.collection('workouts').onSnapshot((snapshot) => {
+      // Group workouts by week
+      const weeks = {};
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const id = docSnap.id;
+        if (!data.date) return;
+
+        // Compute Monday–Sunday range for this workout's date
+        const d = new Date(data.date);
+        const day = d.getUTCDay(); // Sunday = 0
+        const diff = (day === 0 ? -6 : 1) - day;
+        const monday = new Date(d);
+        monday.setUTCDate(d.getUTCDate() + diff);
+        const sunday = new Date(monday);
+        sunday.setUTCDate(monday.getUTCDate() + 6);
+
+        const weekKey = `${monday.toISOString().slice(0,10)} - ${sunday.toISOString().slice(0,10)}`;
+
+        if (!weeks[weekKey]) weeks[weekKey] = [];
+        weeks[weekKey].push({ ...data, id });
+      });
+
+      // Clear and rebuild logs
+      logsList.innerHTML = '';
+
+      // Sort weeks (newest first)
+      Object.keys(weeks).sort().reverse().forEach(weekKey => {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        summary.textContent = `Week ${weekKey}`;
+        details.appendChild(summary);
+
+        const ul = document.createElement('ul');
+
+        // Sort workouts by date inside the week
+        weeks[weekKey].sort((a,b)=>a.date.localeCompare(b.date)).forEach(data=>{
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <div class="workout-row">
+              <div class="workout-info">
+                <strong>${data.date || ''}</strong> - ${data.workout || ''}
+                <br><em>${data.notes || ''}</em>
               </div>
-            `;
-            logsList.appendChild(li);
-          });
+              <div class="workout-actions">
+                <button class="edit" data-id="${data.id}">Edit</button>
+                <button class="delete" data-id="${data.id}">Delete</button>
+              </div>
+            </div>
+          `;
+          ul.appendChild(li);
         });
 
-      // --- Edit/Delete handlers ---
-      logsList.addEventListener('click', async (e) => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        const id = btn.dataset.id;
-        const docRef = userRef.collection('workouts').doc(id);
-
-        if (btn.classList.contains('delete')) {
-          if (confirm('Delete this workout?')) {
-            try { await docRef.delete(); } catch (err) { console.error(err); }
-          }
-        }
-
-        if (btn.classList.contains('edit')) {
-          try {
-            const snap = await docRef.get();
-            if (!snap.exists) return;
-            const w = snap.data();
-
-            const newDate = prompt('Date (YYYY-MM-DD):', w.date || '');
-            if (newDate === null) return;
-            const newWorkout = prompt('Workout:', w.workout || '');
-            if (newWorkout === null) return;
-            const newNotes = prompt('Notes:', w.notes || '');
-            if (newNotes === null) return;
-
-            await docRef.update({ date: newDate, workout: newWorkout, notes: newNotes });
-          } catch (err) {
-            console.error(err);
-          }
-        }
+        details.appendChild(ul);
+        logsList.appendChild(details);
       });
     });
+
+    // --- Edit/Delete handlers (unchanged) ---
+    logsList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const docRef = userRef.collection('workouts').doc(id);
+
+      if (btn.classList.contains('delete')) {
+        if (confirm('Delete this workout?')) {
+          try { await docRef.delete(); } catch (err) { console.error(err); }
+        }
+      }
+
+      if (btn.classList.contains('edit')) {
+        try {
+          const snap = await docRef.get();
+          if (!snap.exists) return;
+          const w = snap.data();
+
+          const newDate = prompt('Date (YYYY-MM-DD):', w.date || '');
+          if (newDate === null) return;
+          const newWorkout = prompt('Workout:', w.workout || '');
+          if (newWorkout === null) return;
+          const newNotes = prompt('Notes:', w.notes || '');
+          if (newNotes === null) return;
+
+          await docRef.update({ date: newDate, workout: newWorkout, notes: newNotes });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    })});
+
   </script>
 </body>
 </html>
